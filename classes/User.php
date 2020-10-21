@@ -30,9 +30,7 @@ class User{
       $err = array();
       //print_r($opt);
 
-      if(isset($opt['dry_run'])){
-        print 'Dry Run';
-      }
+
 
       if(isset($opt['file']) && !preg_match('/^[\/\w\-. ]+$/',$opt['file'])){
         $err['file'] = 'The "--file" arg needs a value.';
@@ -53,20 +51,34 @@ class User{
 
         //Creating the DB connection
         // If the user is entering the DB details, I assume they want to connect
-        if(!$this->conn())
+        if(!$this->conn()){
           $err['database'] = 'Unable to connect to MySQL. Error No:'.mysqli_connect_errno();
+        }
 
       }else{
         $err['database'] = 'Unable to connect to MySQL. All the parameters (-u, -p, -h) are compulsory';
       }
 
+      if(isset($opt['dry_run'])){
+        $file = $opt['file'];
+        if(!$this->processCSV($file,true))
+          return $err['csv'] = '(DRY RUN) We had Error(s) processing the CSV file'.PHP_EOL;
+      }
+
+      if(!isset($opt['dry_run']) && !isset($opt['create_table'])){
+        $file = $opt['file'];
+        if(!$this->processCSV($file))
+          return $err['csv'] = 'We had Error(s) processing the CSV file'.PHP_EOL;
+      }
+
       if(isset($opt['create_table'])){
         $created = $this->createTable();
-        var_dump($created);
+
         if(!$created){
           $err['table'] = $created;
+        }else{
+          return 'Table Dropped, Created and script halted'.PHP_EOL;
         }
-        //return 'Table Created';
       }
 
       if(isset($opt['help'])){
@@ -79,12 +91,6 @@ HELP
 -p - MySQL password
 -h - MySQL host
 --help - which will output the above list of directives with details.';
-      }
-
-      if(!isset($opt['dry_run'])){
-        $file = $opt['file'];
-        if(!$this->processCSV($file))
-          return $err['csv'] = 'Error processing the CSV file';
       }
 
       if(empty($err))
@@ -101,9 +107,10 @@ HELP
      if($mysqli===false){
        return 'Unable to connect to MySQL. Error No:'.mysqli_connect_errno();
      }
+
      if (
-       !$mysqli->query("DROP TABLE IF EXISTS `User`") ||
-       !$mysqli->query("CREATE TABLE `User` ( `id` INT NOT NULL AUTO_INCREMENT , `name` VARCHAR(50) NULL , `surname` VARCHAR(50) NULL , `email` VARCHAR(50) NOT NULL , PRIMARY KEY (`id`), UNIQUE `email` (`email`(50)))")
+       !$mysqli->query("DROP TABLE IF EXISTS `Users`") ||
+       !$mysqli->query("CREATE TABLE `Users` ( `id` INT NOT NULL AUTO_INCREMENT , `name` VARCHAR(50) NULL , `surname` VARCHAR(50) NULL , `email` VARCHAR(50) NOT NULL , PRIMARY KEY (`id`), UNIQUE `email` (`email`(50))) ENGINE='InnoDB'")
      ) {
       return "Table deletion/creation failed: (" . $mysqli->errno . ") " . $mysqli->error;
     }
@@ -112,19 +119,75 @@ HELP
    }
 
    //This methd processes the CSV file
-   function processCSV($file){
-     $row = 1;
-     $handle = fopen('/home/fcalmon/public_html/catalyst/csv/'.$file,'r');
-     while ( ($data = fgetcsv($handle) ) !== FALSE ) {
-       print_r($data);
-     }
+   //If $dry_run == true, there will be no writing on the database
+   function processCSV($file,$dry_run=false){
 
+    $mysqli = $this->conn();
+
+     $row = 0;
+     $handle = fopen('/home/fcalmon/public_html/catalyst/csv/'.$file,'r');
+     if(!$handle){
+       return 'File Does not exist';
+     }
+     $err=0;
+     if($dry_run){
+       print 'Dry Run';
+       $mysqli->autocommit(false);
+     }
+     while ( ($data = fgetcsv($handle) ) !== FALSE ) {
+       if($row>0 && count($data)>1){
+
+         $name = ucfirst(strtolower(trim($data[0])));
+         $surname = ucfirst(trim(strtolower($data[1])));
+         $email = strtolower(trim($data[2]));
+
+         if (filter_var($email, FILTER_VALIDATE_EMAIL)) {
+
+            if(!$dry_run){
+              if($mysqli->query( 'INSERT INTO Users (name,surname,email) VALUES ("'.$name.'","'.$surname.'","'.$email.'")' ) !==TRUE){
+                print 'Error Inserting '.$mysqli->error.PHP_EOL;
+                $err++;
+              }
+            }
+
+            if($dry_run){
+              //$mysqli->autocommit(FALSE);
+              //$mysqli->begin_transaction();
+              if($mysqli->query( 'INSERT INTO Users (name,surname,email) VALUES ("'.$name.'","'.$surname.'","'.$email.'")' ) !==TRUE){
+                print 'Error Inserting '.$mysqli->error.PHP_EOL;
+                $err++;
+              }
+
+            }
+
+          } else {
+            echo($name."'s email: $email, is not a valid email address".PHP_EOL);
+            $err++;
+          }
+
+         unset($name);
+         unset($surname);
+         unset($email);
+       }
+
+        $row++;
+    }
+
+        if($dry_run){
+          $mysqli->rollback();
+        }
+        $mysqli->autocommit(true);
+        $mysqli->close();
+
+      if($err==0)
+        return true;
    }
 
    //This method created the Database Connection
    function conn(){
-
+     //mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
      $mysqli = new mysqli($this->h, $this->u, $this->p, "fcalmon_catalyst");
+     //$mysqli->set_charset('utf8mb4');
 
      if($mysqli->connect_errno)
        return false;
