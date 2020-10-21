@@ -1,6 +1,8 @@
 <?php
 
 ini_set('display_errors',1);
+ini_set('auto_detect_line_endings',TRUE);
+
 
 class User{
   private $host;
@@ -111,7 +113,12 @@ HELP
 
    //This methd processes the CSV file
    function processCSV($file){
-     
+     $row = 1;
+     $handle = fopen('/home/fcalmon/public_html/catalyst/csv/'.$file,'r');
+     while ( ($data = fgetcsv($handle) ) !== FALSE ) {
+       print_r($data);
+     }
+
    }
 
    //This method created the Database Connection
