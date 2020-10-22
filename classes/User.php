@@ -30,8 +30,6 @@ class User{
       $err = array();
       //print_r($opt);
 
-
-
       if(isset($opt['file']) && !preg_match('/^[\/\w\-. ]+$/',$opt['file'])){
         $err['file'] = 'The "--file" arg needs a value.';
       }elseif(!isset($opt['file'])){
@@ -185,10 +183,9 @@ HELP
 
    //This method created the Database Connection
    function conn(){
-     //mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
-     $mysqli = new mysqli($this->h, $this->u, $this->p, "fcalmon_catalyst");
-     //$mysqli->set_charset('utf8mb4');
 
+     $mysqli = new mysqli($this->h, $this->u, $this->p, "fcalmon_catalyst");
+    
      if($mysqli->connect_errno)
        return false;
      else {
