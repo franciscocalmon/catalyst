@@ -1,15 +1,19 @@
 <?php
+<<<<<<< HEAD
 
 ini_set('display_errors',1);
 ini_set('auto_detect_line_endings',TRUE);
 
 
+=======
+>>>>>>> 4f593f60b19465ba5287758697fa409b951ef0d3
 class User{
   private $host;
   private $file;
   private $dbUsername;
   private $dbPassword;
   private $dryRun;
+<<<<<<< HEAD
   private $options;
   private $link;
   public $test;
@@ -193,6 +197,15 @@ HELP
     }
 
    }
+=======
+  public $test;
+
+    function __construct(){
+        $this->test = 'here';
+        return $this->test;
+    }
+
+>>>>>>> 4f593f60b19465ba5287758697fa409b951ef0d3
 
 }
 ?>

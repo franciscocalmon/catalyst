@@ -17,6 +17,7 @@ $longopts  = array(
     "option",        // No value
     "opt",           // No value
 );
+<<<<<<< HEAD
 
 $options = getopt($shortopts, $longopts);
 //var_dump($options);
@@ -24,5 +25,13 @@ $options = getopt($shortopts, $longopts);
 $user = new User($options);
 
 print_r($user->checkOptions());
+=======
+$options = getopt($shortopts, $longopts);
+var_dump($options);
+
+$user = new User();
+
+print $user->test;
+>>>>>>> 4f593f60b19465ba5287758697fa409b951ef0d3
 
  ?>
